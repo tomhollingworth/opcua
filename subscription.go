@@ -153,6 +153,21 @@ func (s *Subscription) Unmonitor(monitoredItemIDs ...uint32) (*ua.DeleteMonitore
 	err := s.c.Send(req, func(v interface{}) error {
 		return safeAssign(v, &res)
 	})
+
+	if err == nil {
+		index := 0
+		for _, item := range s.items {
+			if !contains(monitoredItemIDs, item.createResult.MonitoredItemID) {
+				s.items[index] = item
+				index++
+			}
+		}
+		for i := index; i < len(s.items); i++ {
+			s.items[i] = nil
+		}
+		s.items = s.items[:index]
+	}
+
 	return res, err
 }
 
@@ -336,4 +351,14 @@ func (s *Subscription) recreate() error {
 	dlog.Printf("subscription successfully recreated")
 
 	return nil
+}
+
+// contains returns true if the array contains the search term
+func contains(array []uint32, search uint32) bool {
+	for _, i := range array {
+		if i == search {
+			return true
+		}
+	}
+	return false
 }
